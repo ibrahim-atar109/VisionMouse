@@ -1,24 +1,23 @@
+import csv
 import cv2
-import joblib
 import mediapipe as mp
-
-# 1. Load your trained model
-model = joblib.load("gesture_model.pkl")
 
 BaseOptions = mp.tasks.BaseOptions
 HandLandmarker = mp.tasks.vision.HandLandmarker
 HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 
+# Configure MediaPipe to track up to 2 hands (left and right)
 options = HandLandmarkerOptions(
     base_options=BaseOptions(model_asset_path="hand_landmarker.task"),
     running_mode=VisionRunningMode.VIDEO,
-    num_hands=1,
+    num_hands=2,
     min_hand_detection_confidence=0.6,
     min_hand_presence_confidence=0.6,
     min_tracking_confidence=0.6,
 )
 
+# Standard MediaPipe hand bone connection index pairs for drawing lines
 HAND_CONNECTIONS = [
     (0, 1),
     (1, 2),
@@ -43,10 +42,18 @@ HAND_CONNECTIONS = [
     (0, 17),  # Palm
 ]
 
-# Adjust this threshold if it's too strict or too loose (lower = stricter match required)
-DISTANCE_THRESHOLD = 0.35
-
 cap = cv2.VideoCapture(0)
+
+# Open or create a CSV file to save your training data
+csv_file = open("gesture_data.csv", mode="a", newline="")
+csv_writer = csv.writer(csv_file)
+
+print("--- GESTURE DATA COLLECTOR ---")
+print("Press '1' on your keyboard for: Thumbs_Up")
+print("Press '2' on your keyboard for: Thumbs_Down")
+print("Press 'q' to Quit")
+
+current_label = None
 
 try:
   with HandLandmarker.create_from_options(options) as landmarker:
@@ -64,9 +71,12 @@ try:
       frame_timestamp_ms += int(1000 / 30)
       detection_result = landmarker.detect_for_video(mp_image, frame_timestamp_ms)
 
+      display_text = "Ready: Press '1' (Thumbs Up) or '2' (Thumbs Down)"
+
       if detection_result.hand_landmarks:
         h, w, _ = frame.shape
         for hand_landmarks in detection_result.hand_landmarks:
+          # Normalize coordinates relative to the wrist (landmark 0)
           wrist_x = hand_landmarks[0].x
           wrist_y = hand_landmarks[0].y
 
@@ -77,59 +87,57 @@ try:
             row_data.append(lm.y - wrist_y)
             pixel_landmarks.append((int(lm.x * w), int(lm.y * h)))
 
-          # Check the distance to the nearest neighbors in the model
-          row_2d = [row_data]
-          distances, _ = model.kneighbors(row_2d)
-          avg_distance = sum(distances[0]) / len(distances[0])
+          # If you pressed 1 or 2, record this frame's data into the CSV
+          if current_label is not None:
+            row_data.insert(
+                0, current_label
+            )  # First column stores the label name
+            csv_writer.writerow(row_data)
+            display_text = f"SAVED: {current_label}"
 
-          x_coords = [pt[0] for pt in pixel_landmarks]
-          y_coords = [pt[1] for pt in pixel_landmarks]
-          x_min, x_max = max(0, min(x_coords) - 25), min(w, max(x_coords) + 25)
-          y_min, y_max = max(0, min(y_coords) - 25), min(h, max(y_coords) + 25)
-
-          # If the hand shape is too far from your training data, show nothing!
-          if avg_distance > DISTANCE_THRESHOLD:
-            display_text = ""  # Shows nothing
-            box_color = (255, 0, 0)  # Blue box for untracked/neutral
-          else:
-            prediction = model.predict(row_2d)[0]
-            display_text = str(prediction)
-            box_color = (0, 255, 0)  # Green box for valid match
-
-            # Draw the prediction text only if it's a valid match
-            cv2.putText(
-                frame,
-                display_text,
-                (x_min, max(35, y_min - 10)),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.9,
-                box_color,
-                2,
-            )
-
-          # Draw bounding box
-          cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), box_color, 2)
-
-          # Draw hand skeleton lines and joints
+          # Draw the white skeleton lines connecting the joints
           for connection in HAND_CONNECTIONS:
+            start_idx, end_idx = connection
             cv2.line(
                 frame,
-                pixel_landmarks[connection[0]],
-                pixel_landmarks[connection[1]],
+                pixel_landmarks[start_idx],
+                pixel_landmarks[end_idx],
                 (255, 255, 255),
                 2,
             )
+
+          # Draw green joint dots over the finger joints
           for pt in pixel_landmarks:
-            cv2.circle(frame, pt, 5, box_color, -1)
+            cv2.circle(frame, pt, 5, (0, 255, 0), -1)
 
-      cv2.imshow("Gesture Recognition - Press 'q' to Quit", frame)
+        # Reset the label trigger after capturing the frame
+        current_label = None
 
-      if cv2.waitKey(5) & 0xFF == ord("q"):
+      # Show instructions on the webcam feed
+      cv2.putText(
+          frame,
+          display_text,
+          (10, 40),
+          cv2.FONT_HERSHEY_SIMPLEX,
+          0.7,
+          (0, 255, 255),
+          2,
+      )
+      cv2.imshow("Data Collector - Press 'q' to Quit", frame)
+
+      # Key listening logic mapped to Thumbs Up and Thumbs Down
+      key = cv2.waitKey(5) & 0xFF
+      if key == ord("q"):
         break
+      elif key == ord("1"):
+        current_label = "Thumbs_Up"
+      elif key == ord("2"):
+        current_label = "Thumbs_Down"
 
 except KeyboardInterrupt:
   pass
 
 finally:
+  csv_file.close()
   cap.release()
   cv2.destroyAllWindows()
