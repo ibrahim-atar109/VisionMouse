@@ -1,16 +1,18 @@
-from collect_data import collect_data
+from collect_data import GestureCollector
 from recognize import GestureRecognizer
 from train_model import train_gesture_model
+from test_gestures import GestureTester
 
 
 def main():
   print("1. Collect gesture data")
   print("2. Train or retrain model")
   print("3. Run gesture recognition")
-  choice = input("Enter 1, 2, or 3: ").strip()
+  print("4. Test gesture recognition")
+  choice = input("Enter 1, 2, 3, or 4: ").strip()
 
   if choice == "1":
-    collector = collect_data()
+    collector = GestureCollector()
     collector.run()
   elif choice == "2":
     print("Starting model training...")
@@ -23,6 +25,12 @@ def main():
       print(
           "Error: collect data and train your model fist."
       )
+  elif choice == "4":
+    try:
+      tester = GestureTester()
+      tester.run()
+    except FileNotFoundError:
+      print("Error.")
   else:
     print("Invalid choice.")
 

@@ -4,14 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ab1a88bc-e229-4121-8588-498c9cb5df63" name="Changes" comment="Implemented ML hand gesture recognition for thumbs up and thumbs down">
-      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/recognize.py" afterDir="false" />
+    <list default="true" id="ab1a88bc-e229-4121-8588-498c9cb5df63" name="Changes" comment="Restructured project, added main class with navigation menu to either collect data, train the model, or do gesture recognition.">
+      <change afterPath="$PROJECT_DIR$/test_gestures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/collect_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/collect_data.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gesture_data.csv" beforeDir="false" afterPath="$PROJECT_DIR$/gesture_data.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gesture_model.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/gesture_model.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handtracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/handtracker.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gesture_data.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/gesture_model.pkl" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/recognize.py" beforeDir="false" afterPath="$PROJECT_DIR$/recognize.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/train_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/train_model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -141,7 +141,15 @@
       <option name="project" value="LOCAL" />
       <updated>1787437146222</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Restructured project, added main class with navigation menu to either collect data, train the model, or do gesture recognition.">
+      <option name="closed" value="true" />
+      <created>1787710560960</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1787710560960</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -150,6 +158,7 @@
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Used Google mediapipe and established default hand tracking" />
     <MESSAGE value="Implemented ML hand gesture recognition for thumbs up and thumbs down" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented ML hand gesture recognition for thumbs up and thumbs down" />
+    <MESSAGE value="Restructured project, added main class with navigation menu to either collect data, train the model, or do gesture recognition." />
+    <option name="LAST_COMMIT_MESSAGE" value="Restructured project, added main class with navigation menu to either collect data, train the model, or do gesture recognition." />
   </component>
 </project>

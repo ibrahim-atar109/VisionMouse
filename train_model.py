@@ -14,13 +14,12 @@ def train_gesture_model():
         X, y, test_size=0.2, random_state=42
     )
 
-    # Increase neighbors to 5 and use distance weighting
-    model = KNeighborsClassifier(n_neighbors=5, weights="distance")
+    model = KNeighborsClassifier(n_neighbors=8, weights="distance")
     model.fit(X_train, y_train)
 
     print(f"Model Accuracy: {model.score(X_test, y_test) * 100:.2f}%")
     joblib.dump(model, "gesture_model.pkl")
-    print("Model saved successfully!")
+    print("Model saved.")
 
   except Exception as e:
     print("Error training model:", e)
