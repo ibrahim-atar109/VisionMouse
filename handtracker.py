@@ -1,135 +1,79 @@
 import cv2
-import joblib
 import mediapipe as mp
 
-# 1. Load your trained model
-model = joblib.load("gesture_model.pkl")
 
-BaseOptions = mp.tasks.BaseOptions
-HandLandmarker = mp.tasks.vision.HandLandmarker
-HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
-VisionRunningMode = mp.tasks.vision.RunningMode
+class HandTracker:
 
-options = HandLandmarkerOptions(
-    base_options=BaseOptions(model_asset_path="hand_landmarker.task"),
-    running_mode=VisionRunningMode.VIDEO,
-    num_hands=1,
-    min_hand_detection_confidence=0.6,
-    min_hand_presence_confidence=0.6,
-    min_tracking_confidence=0.6,
-)
+  def __init__(self, num_hands=1, model_path="hand_landmarker.task"):
+    BaseOptions = mp.tasks.BaseOptions
+    HandLandmarker = mp.tasks.vision.HandLandmarker
+    HandLandmarkerOptions = mp.tasks.vision.HandLandmarkerOptions
+    VisionRunningMode = mp.tasks.vision.RunningMode
 
-HAND_CONNECTIONS = [
-    (0, 1),
-    (1, 2),
-    (2, 3),
-    (3, 4),  # Thumb
-    (0, 5),
-    (5, 6),
-    (6, 7),
-    (7, 8),  # Index
-    (5, 9),
-    (9, 10),
-    (10, 11),
-    (11, 12),  # Middle
-    (9, 13),
-    (13, 14),
-    (14, 15),
-    (15, 16),  # Ring
-    (13, 17),
-    (17, 18),
-    (18, 19),
-    (19, 20),  # Pinky
-    (0, 17),  # Palm
-]
+    self.options = HandLandmarkerOptions(
+        base_options=BaseOptions(model_asset_path=model_path),
+        running_mode=VisionRunningMode.VIDEO,
+        num_hands=num_hands,
+        min_hand_detection_confidence=0.6,
+        min_hand_presence_confidence=0.6,
+        min_tracking_confidence=0.6,
+    )
+    self.landmarker = HandLandmarker.create_from_options(self.options)
+    self.timestamp_ms = 0
 
-# Adjust this threshold if it's too strict or too loose (lower = stricter match required)
-DISTANCE_THRESHOLD = 0.35
+    self.connections = [
+        (0, 1),
+        (1, 2),
+        (2, 3),
+        (3, 4),
+        (0, 5),
+        (5, 6),
+        (6, 7),
+        (7, 8),
+        (5, 9),
+        (9, 10),
+        (10, 11),
+        (11, 12),
+        (9, 13),
+        (13, 14),
+        (14, 15),
+        (15, 16),
+        (13, 17),
+        (17, 18),
+        (18, 19),
+        (19, 20),
+        (0, 17),
+    ]
 
-cap = cv2.VideoCapture(0)
+  def process_frame(self, frame):
+    mp_image = mp.Image(
+        image_format=mp.ImageFormat.SRGB, data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    )
+    self.timestamp_ms += int(1000 / 30)
+    return self.landmarker.detect_for_video(mp_image, self.timestamp_ms)
 
-try:
-  with HandLandmarker.create_from_options(options) as landmarker:
-    frame_timestamp_ms = 0
+  def extract_features(self, hand_landmarks):
+    wrist_x = hand_landmarks[0].x
+    wrist_y = hand_landmarks[0].y
+    row_data = []
+    for lm in hand_landmarks:
+      row_data.append(lm.x - wrist_x)
+      row_data.append(lm.y - wrist_y)
+    return row_data
 
-    while cap.isOpened():
-      success, frame = cap.read()
-      if not success:
-        continue
+  def draw_landmarks(self, frame, hand_landmarks, color=(0, 255, 0)):
+    h, w, _ = frame.shape
+    pixel_landmarks = [(int(lm.x * w), int(lm.y * h)) for lm in hand_landmarks]
 
-      mp_image = mp.Image(
-          image_format=mp.ImageFormat.SRGB,
-          data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB),
+    for start_idx, end_idx in self.connections:
+      cv2.line(
+          frame,
+          pixel_landmarks[start_idx],
+          pixel_landmarks[end_idx],
+          (255, 255, 255),
+          2,
       )
-      frame_timestamp_ms += int(1000 / 30)
-      detection_result = landmarker.detect_for_video(mp_image, frame_timestamp_ms)
+    for pt in pixel_landmarks:
+      cv2.circle(frame, pt, 5, color, -1)
 
-      if detection_result.hand_landmarks:
-        h, w, _ = frame.shape
-        for hand_landmarks in detection_result.hand_landmarks:
-          wrist_x = hand_landmarks[0].x
-          wrist_y = hand_landmarks[0].y
-
-          row_data = []
-          pixel_landmarks = []
-          for lm in hand_landmarks:
-            row_data.append(lm.x - wrist_x)
-            row_data.append(lm.y - wrist_y)
-            pixel_landmarks.append((int(lm.x * w), int(lm.y * h)))
-
-          # Check the distance to the nearest neighbors in the model
-          row_2d = [row_data]
-          distances, _ = model.kneighbors(row_2d)
-          avg_distance = sum(distances[0]) / len(distances[0])
-
-          x_coords = [pt[0] for pt in pixel_landmarks]
-          y_coords = [pt[1] for pt in pixel_landmarks]
-          x_min, x_max = max(0, min(x_coords) - 25), min(w, max(x_coords) + 25)
-          y_min, y_max = max(0, min(y_coords) - 25), min(h, max(y_coords) + 25)
-
-          # If the hand shape is too far from your training data, show nothing!
-          if avg_distance > DISTANCE_THRESHOLD:
-            display_text = ""  # Shows nothing
-            box_color = (255, 0, 0)  # Blue box for untracked/neutral
-          else:
-            prediction = model.predict(row_2d)[0]
-            display_text = str(prediction)
-            box_color = (0, 255, 0)  # Green box for valid match
-
-            # Draw the prediction text only if it's a valid match
-            cv2.putText(
-                frame,
-                display_text,
-                (x_min, max(35, y_min - 10)),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.9,
-                box_color,
-                2,
-            )
-
-          # Draw bounding box
-          cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), box_color, 2)
-
-          # Draw hand skeleton lines and joints
-          for connection in HAND_CONNECTIONS:
-            cv2.line(
-                frame,
-                pixel_landmarks[connection[0]],
-                pixel_landmarks[connection[1]],
-                (255, 255, 255),
-                2,
-            )
-          for pt in pixel_landmarks:
-            cv2.circle(frame, pt, 5, box_color, -1)
-
-      cv2.imshow("Gesture Recognition - Press 'q' to Quit", frame)
-
-      if cv2.waitKey(5) & 0xFF == ord("q"):
-        break
-
-except KeyboardInterrupt:
-  pass
-
-finally:
-  cap.release()
-  cv2.destroyAllWindows()
+    return pixel_landmarks
