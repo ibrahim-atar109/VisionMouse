@@ -41,7 +41,7 @@ MediaPipe detects one hand per frame and returns 21 landmarks. The index fingert
 
 **Limitations**
 
-- No neutral class (unknown gestures won't be recognized as such)
+- No neutral class (unknown gestures won't be recognized as such) 
 - Accuracy may drop due to differences in cameras or lighting.
 - There is no double-click or click-and-drag.
 - This uses one hand as the default
@@ -58,6 +58,7 @@ MediaPipe detects one hand per frame and returns 21 landmarks. The index fingert
 | `recognize.py` | Runs cursor control and gesture clicks |
 | `test_gestures.py` | Shows live predictions without controlling the mouse |
 | `handtracker.py` | MediaPipe wrapper: landmark detection, feature extraction, and drawing |
+| `hand_landmarker.task` | MediaPipe hand landmark model |
 
 `gesture_data.csv` and `gesture_model.pkl` are created in the project folder as you use options 1 and 2.
 
@@ -73,7 +74,7 @@ MediaPipe detects one hand per frame and returns 21 landmarks. The index fingert
    pip install opencv-python mediapipe scikit-learn pyautogui joblib pandas
    ```
 
-3. Put the MediaPipe `hand_landmarker.task` model file in the project folder. You can download it from the [MediaPipe Hand Landmarker guide](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker).
+3. The MediaPipe `hand_landmarker.task` model file is included in this repository. Keep it in the same folder as `main.py`.
 
 4. Start the control center:
 
